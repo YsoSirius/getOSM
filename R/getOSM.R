@@ -381,12 +381,28 @@ treemapOSM <- function(sumry) {
 #' @param mergeby Should the values be assigned per continent
 #' or per country. Default is 'country'
 #' @param unit Which unit should be taken. Default is 'mb'
-#' @param ... Arguments passed on to mapview
+#' @param ... Arguments passed on to mapview.
+#' See \code{\link[mapview]{mapview}} or
+#' \href{https://r-spatial.github.io/mapview/}{Mapview}
+#'
 #'
 #'
 #' @examples \donttest{
 #' con_df <- summaryOSM()
 #' mapviewOSM(con_df, mergeby = "subregions", unit = "gb")
+#'
+#' YlOrBr <- c("#FFFFD4", "#FED98E", "#FE9929", "#D95F0E", "#993404")
+#' colfunc = colorRampPalette(YlOrBr, space = "Lab")
+#' mapviewOSM(con_df, mergeby = "country", col.regions = colfunc)
+#'
+#' jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan",
+#'                               "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+#' mapviewOSM(con_df, mergeby = "country", unit = "gb", burst=F, col.regions = jet.colors,
+#'            at = 0:3)
+#'
+#' mapviewOSM(con_df, mergeby = "country", col.regions=jet.colors,
+#'            popup = mapview::popupTable(con_df, zcol = c("subregions", "kilobyte"),
+#'                                        feature.id = F))
 #'}
 #' @author Sebastian Gatscha
 utils::globalVariables(c("REGION","kilobyte"));
@@ -399,10 +415,12 @@ mapviewOSM <- function(sumry, mergeby="country", unit="mb",...) {
   units <- c("b","kb","mb","gb","tb")
   if (!unit %in% units){stop(paste0("unit must be one of ", paste0(units,collapse = ", "),"."))}
 
-  world <- st_as_sf(rworldmap::countriesLow)
+  world <- sf::st_as_sf(rworldmap::countriesLow)
 
   sumry <- sumry[,-c(2,4,5,8)]
   if(mergeby=="country") {
+    print("Merge by Countries")
+
     sumry[sumry$subregions == "Russian Federation", "subregions"] = "Russia"
     sumry[sumry$subregions == "Cyprus","subregions"] = "Northern Cyprus"
     sumry[sumry$subregions %in% c("Nevada", "Kansas", "Idaho","Indiana","Georgia (US State)",
@@ -473,6 +491,8 @@ mapviewOSM <- function(sumry, mergeby="country", unit="mb",...) {
                           "Size", "geometry")
 
   } else {
+    print("Merge by Continents")
+
     world1 <- base::merge(x = world, y = sumry, by.x="REGION", by.y="continent")
     world1 <- world1 %>%
       group_by(REGION) %>%
@@ -493,16 +513,13 @@ mapviewOSM <- function(sumry, mergeby="country", unit="mb",...) {
 
   world1$Size <- round(world1$Size / as.numeric(mult[1]), 2)
 
-  # mapview(world1, zcol="Size", layer.name = paste0('Size in ',mult[2]))
-  mapview(world1, zcol="Size", layer.name = paste0('Size in ',mult[2]), ...)
+  # mapview::mapview(world1, zcol="Size", layer.name = paste0('Size in ',mult[2]))
+  mapview::mapview(world1, zcol="Size", layer.name = paste0('Size in ',mult[2]), ...)
 }
 # con_df <- summaryOSM()
 # library(mapview)
-mapviewOSM(con_df, mergeby = "country", unit = "gb")
+# mapviewOSM(con_df, mergeby = "country", unit = "gb")
 # mapviewOSM(cont_df, mergeby = "continent", unit = "gb")
 
 
-# library(rworldmap)
-# library(sf)
-# library(mapview)
-# library(dplyr)
+

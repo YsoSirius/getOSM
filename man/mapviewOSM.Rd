@@ -11,7 +11,9 @@ or per country. Default is 'country'}
 
 \item{unit}{Which unit should be taken. Default is 'mb'}
 
-\item{...}{Arguments passed on to mapview}
+\item{...}{Arguments passed on to mapview.
+See \code{\link[mapview]{mapview}} or
+\href{https://r-spatial.github.io/mapview/}{Mapview}}
 }
 \description{
 Plot the OSM summary dataset with mapview.
@@ -20,6 +22,19 @@ Plot the OSM summary dataset with mapview.
 \donttest{
 con_df <- summaryOSM()
 mapviewOSM(con_df, mergeby = "subregions", unit = "gb")
+
+YlOrBr <- c("#FFFFD4", "#FED98E", "#FE9929", "#D95F0E", "#993404")
+colfunc = colorRampPalette(YlOrBr, space = "Lab")
+mapviewOSM(con_df, mergeby = "country", col.regions = colfunc)
+
+jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan",
+                              "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+mapviewOSM(con_df, mergeby = "country", unit = "gb", burst=F, col.regions = jet.colors,
+           at = 0:3)
+
+mapviewOSM(con_df, mergeby = "country", col.regions=jet.colors,
+           popup = mapview::popupTable(con_df, zcol = c("subregions", "kilobyte"),
+                                       feature.id = F))
 }
 }
 \author{
