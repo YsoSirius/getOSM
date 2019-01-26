@@ -21,11 +21,33 @@ and continent can be plotted as treemap with ```treemapOSM``` or
 as mapview plot with ```mapviewOSM``` 
 
 
-    
-## Example Calls
+# Usage 
+### Download OSM Data
  ```sh
 dest <- getOSM()
 dest <- getOSM(exclude = "md5", r1 = 2, r2=13)
 dest <- getOSM(filterby="shp", r1 = 2, r2=13)
 dest <- getOSM(filterby="osm", exclude = "md5", r1 = 2, r2 =13, dest="")
 ```
+
+### Convert OSM File
+ ```sh
+dest <- getOSM(filterby="osm", exclude = "md5", r1 = 2, r2 =13, dest="")
+convertOSM(dest, cm=T, cb = F, cw = F, fname = "capverde4", ext = "pbf")
+```
+
+### Get a summary of the OSM - Data size
+ ```sh
+sumry <- summaryOSM()
+```
+
+### Plot the summary with treemapOSM
+ ```sh
+treemapOSM(sumry)
+```
+
+### Plot the summary with mapviewOSM
+ ```sh
+mapviewOSM(con_df, mergeby = "country", unit = "gb")
+```
+
