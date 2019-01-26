@@ -1,5 +1,10 @@
 language: r
 cache: packages
+addons:
+  apt:
+    packages:
+      - libudunits2-dev
+
 r_packages:
   - covr
 after_success:
