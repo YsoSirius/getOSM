@@ -5,6 +5,16 @@
 # Session Data files
 .RData
 
+# Osm data
+/*.osm.bz2
+/*.osm.pbf
+/*.osm.osc
+/*.shp.zip
+/*.shp
+/*.o5m
+/*.o5c
+/*.pbf
+
 # Example code in package build process
 *-Ex.R
 
@@ -58,3 +68,4 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+.Rproj.user
