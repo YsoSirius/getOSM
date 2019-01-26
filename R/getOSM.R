@@ -153,15 +153,11 @@ getOSM <- function(filterby=NULL, exclude=NULL, r1=NULL,
   download.file(url = downurl, destfile = destfin, method="libcurl", mode="wb")
   return(destfin)
 }
-# dest <- getOSM()
-# dest <- getOSM(exclude = "md5", r1 = 2, r2=13)
-# dest <- getOSM(filterby="shp", r1 = 2, r2=13)
-# dest <- getOSM(filterby="osm", exclude = "md5", r1 = 2, r2 =13, dest="")
 
 
 #' @title convertOSM
 #' @name convertOSM
-#' @description Interface to osmconvert. (It must be set as system variable)
+#' @description Basic Interface to osmconvert.
 #'
 #' @export
 #'
@@ -173,6 +169,7 @@ getOSM <- function(filterby=NULL, exclude=NULL, r1=NULL,
 #' @param bbox Cut out the result via bbox.
 #' @param poly Cut out the result via a .poly-file
 #' @param fname Output file name
+#' @param osmconvert Name of the executable. Default is 'osmconvert'
 #'
 #' @return The osmconvert call.
 #'
@@ -182,24 +179,14 @@ getOSM <- function(filterby=NULL, exclude=NULL, r1=NULL,
 #'}
 #' @author Sebastian Gatscha
 convertOSM <- function(destfin, ext="osm", cm=FALSE, cb=FALSE, cw=FALSE,
-                       bbox=NULL, fname=NULL, poly=NULL) {
-  # destfin="C:/Users/Bobo/Documents/TraffiCon/getOSM/getOSM/comores-latest.osm.bz2"
-  # destfin=dest
-  # ext="bz2"
+                       bbox=NULL, fname=NULL, poly=NULL, osmconvert="osmconvert") {
+  h <- system(osmconvert, ignore.stdout = F,ignore.stderr = F)
+  if (h!=0) { stop("osmconvert is not installed or not set as system variable.")}
 
   extarg = c("osm", "o5m", "pbf", "bz2", "osc", "osh", "o5c", "osc.gz")
   if (!ext %in% extarg) {
     stop(paste("ext must be one of", paste(extarg, collapse = ", ")))
   }
-
-  # fname=NULL
-  # fname="osmoutput"
-  # ext="osc"
-  # cm=cb=cw=F
-  # bbox=T
-  # poly=T
-  # destfin="C:/Users/Bobo/Documents/cape-verde-latest.osm.pbf"
-
 
   if (is.null(fname)) {
     fname = basename(destfin)
@@ -230,7 +217,6 @@ convertOSM <- function(destfin, ext="osm", cm=FALSE, cb=FALSE, cw=FALSE,
     if(length(strsplit(bbox, ",")[[1]])!=4){
       stop(paste("bbox must consist of 4 comma separated numeric values, like: 10.5,49,11.5,50"))
     }
-    # as.numeric(strsplit(bbox, ",")[[1]])
     bbox = paste0(" -b=", bbox )
   }
   if(!is.null(poly)){
@@ -243,13 +229,157 @@ convertOSM <- function(destfin, ext="osm", cm=FALSE, cb=FALSE, cw=FALSE,
   invisible(call)
 }
 
-# dest<-getOSM(filterby="pbf", exclude = "md5")
-# dest <- getOSM(filterby="pbf", exclude = "md5", r1 = 2, r2 =13, r3 = 45, dest="")
-# convertOSM(destfin, cm=T, cb = F, cw = F, fname = "seychelles", ext = "osm")
 
-# convertOSM(dest, cm=T, cb = F, cw = F, fname = "capverde4", ext = "pbf")
+#' @title osmosisR
+#' @name osmosisR
+#' @description Basic Interface to osmosis.
+#'
+#' @export
+#'
+#' @importFrom utils tail
+#'
+#' @param input The input file path
+#' @param savename Output name
+#' @param idtracker If TRUE, sets idTrackerType=BitSet
+#' @param usednode If TRUE, sets --used-node
+#' @param usedway If TRUE, sets --used-way
+#' @param extract_nodes Must be given as key-value pair, like 'natural.tree'
+#' @param extract_ways Must be given as key-value pair.
+#' @param bbox Extract data with bounding box coordinates in lat/lon
+#' @param poly Extract data with .POLY files
+#' @param filter_nodes Use --tag-filter with nodes
+#' @param filter_ways Use --tag-filter with ways
+#' @param filter_relations Use --tag-filter with relations
+#' @param nodes_accept logical, if nodes should be accepted or rejected.
+#' Default is TRUE
+#' @param ways_accept logical, if ways should be accepted or rejected.
+#' Default is TRUE
+#' @param relation_accept logical, if relations should be accepted or
+#' rejected. Default is TRUE
+#'
+#' @return The osmosis call.
+#'
+#' @examples \donttest{
+#' dest <- getOSM(filterby="osm", exclude = "md5", r1 = 2, r2 =13, dest="")
+#' osmosisR(dest, savename = "highway_capeverde.osm",
+#'          filter_ways = "highway=*")
+#'
+#' osmosisR(dest,
+#'          savename = "motorways_dest.osm",
+#'          usednode = T, usedway = T,
+#'          ways_accept = F,filter_ways = "",
+#'          filter_nodes = "natural=tree")
+#'
+#' ## Get only tags with 'building=yes' and reject ways and relations.
+#' osmosisR(dest,
+#'          savename = "buildings_dest.osm",
+#'          filter_relations = T,filter_ways = "",
+#'          filter_nodes = "building=yes",
+#'          relation_accept = F, nodes_accept =  T,
+#'          ways_accept = F)
+#'
+#' ## Filter for multiple tag values (beach, tree)
+#' osmosisR(dest,
+#'         savename = "buildings_dest.osm",
+#'         filter_nodes = "natural=beach,tree")
+#'
+#' ## Extract data based on node key-values
+#' osmosisR(dest,
+#'          savename = "tree_beach_dest.osm",
+#'          usednode=F, usedway = T,
+#'          extract_nodes = "natural.tree,natural.beach")
+#'
+#'}
+#' @author Sebastian Gatscha
+osmosisR <- function(input, savename="output.osm",
+                     idtracker=FALSE, usednode=FALSE, usedway=FALSE,
+                     extract_nodes=NULL, extract_ways=NULL,
+                     bbox=NULL, poly=NULL,
+                     filter_nodes=NULL, nodes_accept=TRUE,
+                     filter_ways=NULL, ways_accept=TRUE,
+                     filter_relations=NULL, relation_accept=TRUE) {
 
+  ## Check if osmosis is accessible and input exists ###################
+  h <- system("osmosis", ignore.stdout = T,ignore.stderr = T)
+  if (h!=0) {stop("osmosis is not installed or not set as system variable.")}
 
+  if (is.logical(filter_relations) && isTRUE(filter_relations)) {filter_relations=""}
+  if (is.logical(filter_ways) && isTRUE(filter_ways)) {filter_ways=""}
+  if (is.logical(filter_nodes) && isTRUE(filter_nodes)) {filter_nodes=""}
+
+  extarg = c("osm", "pbf")
+  ext = tail(strsplit(basename(input),".", fixed = T)[[1]],1)
+  if (!ext %in% extarg) {stop(paste("ext must be one of",
+                                    paste(extarg, collapse = ", ")))}
+  if(!file.exists(input)){stop(paste0("File does not exist: ", input))}
+
+  readinp <- ifelse(ext=="pbf", " --read-pbf ", " --read-xml ")
+
+  ## Used-Nodes / Used-Ways ######################
+  unod <- ifelse(usednode, " --used-node ", "")
+  uway <- ifelse(usedway, " --used-way ", "")
+
+  ## Extract with keyValueList  ######################
+  if(!is.null(extract_nodes)) {
+    extr_nodes <- paste0(' --node-key-value keyValueList=',
+                         paste0(extract_nodes, collapse = ','), ' ')
+  } else {
+    extr_nodes = NULL
+  }
+  if(!is.null(extract_ways)) {
+    extr_ways <- paste0(' --way-key-value keyValueList=',
+                        paste0(extract_ways, collapse = ','), ' ')
+  } else {
+    extr_ways = NULL
+  }
+
+  ## Filter with --tag-filter ######################
+  if(!is.null(filter_ways)) {
+    way_acc <- ifelse(ways_accept, " accept-ways ", " reject-ways ")
+    filt_way <- paste0(" --tf ", way_acc,
+                       paste0(filter_ways, collapse = ","), " ")
+  } else {
+    filt_way = NULL
+  }
+  if(!is.null(filter_relations)) {
+    rela_accept <- ifelse(relation_accept, " accept-relations ", " reject-relations ")
+    filt_rela <- paste0(" --tf ", rela_accept,
+                        paste0(filter_relations, collapse = ","), " ")
+  } else {
+    filt_rela = NULL
+  }
+  if(!is.null(filter_nodes)) {
+    node_accept <- ifelse(nodes_accept, " accept-nodes ", " reject-nodes ")
+    filt_node <- paste0(" --tf ", node_accept,
+                        paste0(filter_nodes, collapse = ","), " ")
+  } else {
+    filt_node = NULL
+  }
+
+  ## Area Filtering ######################
+  bbox <- ifelse(!is.null(bbox), paste(" --bounding-box ", bbox, " "), "")
+  poly <- ifelse(!is.null(poly), paste(" --bounding-polygon file='", poly, "'"), "")
+  idtracker <- ifelse(idtracker, " idTrackerType=BitSet ", "")
+
+  ## Output Handling #################
+  save = " --write-xml "
+
+  outpath = paste0(c(dirname(input), savename), collapse = "/")
+  if (length(grep(pattern = ".osm|.pbf", x= outpath, fixed = F))==0) {
+    outpath <- paste0(outpath, ".osm")
+  }
+
+  ## Osmosis Call #################
+  call <- paste0("osmosis",readinp, input, extr_nodes, extr_ways,
+                 filt_node, filt_way, filt_rela, bbox, poly,
+                 unod, uway, idtracker, save, outpath);
+  print("Osmosis Call:")
+  print(call)
+  cat("\n")
+  system(call)
+
+  invisible(call)
+}
 
 
 #' @title summaryOSM
@@ -338,7 +468,6 @@ summaryOSM <- function() {
 
   return(cont_df)
 }
-# con_df <- summaryOSM()
 
 
 #' @title treemapOSM
@@ -357,7 +486,6 @@ summaryOSM <- function() {
 #'}
 #' @author Sebastian Gatscha
 treemapOSM <- function(sumry) {
-  # sumry=cont_df
   sumry$seq=NULL
   sumry$seq <- paste(sumry$continent, sumry$subregions, sep = "-")
   cont_plot <- sumry[,c("seq", "kilobyte")]
@@ -409,7 +537,6 @@ treemapOSM <- function(sumry) {
 #' @author Sebastian Gatscha
 utils::globalVariables(c("REGION","kilobyte"));
 mapviewOSM <- function(sumry, mergeby="country", unit="mb",...) {
-  # sumry <- con_df;mergeby="subregions"; unit="mb"
   mgb = c("country", "continent")
   if (!mergeby %in% mgb){stop(paste0("mergeby must be one of ", paste0(mgb,collapse = ", "),"."))}
 
@@ -469,8 +596,6 @@ mapviewOSM <- function(sumry, mergeby="country", unit="mb",...) {
     print(base::setdiff(unique(sumry$subregions),
                   as.character(unique(world1$SOVEREIGNT))))
 
-
-
     # mapview(world1)
     # # world2 <- world
     # world2$geometry=NULL
@@ -518,10 +643,5 @@ mapviewOSM <- function(sumry, mergeby="country", unit="mb",...) {
   # mapview::mapview(world1, zcol="Size", layer.name = paste0('Size in ',mult[2]))
   mapview::mapview(world1, zcol="Size", layer.name = paste0('Size in ',mult[2]), ...)
 }
-# con_df <- summaryOSM()
-# library(mapview)
-# mapviewOSM(con_df, mergeby = "country", unit = "gb")
-# mapviewOSM(cont_df, mergeby = "continent", unit = "gb")
-
 
 

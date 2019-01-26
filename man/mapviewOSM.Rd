@@ -22,7 +22,7 @@ Plot the OSM summary dataset with mapview.
 \donttest{
 ## Get a summary dataset and plot it
 con_df <- summaryOSM()
-mapviewOSM(con_df, mergeby = "subregions", unit = "gb")
+mapviewOSM(con_df, mergeby = "country", unit = "gb")
 
 ## With Custom col.regions
 YlOrBr <- c("#FFFFD4", "#FED98E", "#FE9929", "#D95F0E", "#993404")

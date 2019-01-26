@@ -5,7 +5,8 @@
 \title{convertOSM}
 \usage{
 convertOSM(destfin, ext = "osm", cm = FALSE, cb = FALSE,
-  cw = FALSE, bbox = NULL, fname = NULL, poly = NULL)
+  cw = FALSE, bbox = NULL, fname = NULL, poly = NULL,
+  osmconvert = "osmconvert")
 }
 \arguments{
 \item{destfin}{The input file path.}
@@ -23,12 +24,14 @@ convertOSM(destfin, ext = "osm", cm = FALSE, cb = FALSE,
 \item{fname}{Output file name}
 
 \item{poly}{Cut out the result via a .poly-file}
+
+\item{osmconvert}{Name of the executable. Default is 'osmconvert'}
 }
 \value{
 The osmconvert call.
 }
 \description{
-Interface to osmconvert. (It must be set as system variable)
+Basic Interface to osmconvert.
 }
 \examples{
 \donttest{
