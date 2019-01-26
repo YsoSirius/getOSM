@@ -388,21 +388,25 @@ treemapOSM <- function(sumry) {
 #'
 #'
 #' @examples \donttest{
+#' ## Get a summary dataset and plot it
 #' con_df <- summaryOSM()
 #' mapviewOSM(con_df, mergeby = "subregions", unit = "gb")
 #'
+#' ## With Custom col.regions
 #' YlOrBr <- c("#FFFFD4", "#FED98E", "#FE9929", "#D95F0E", "#993404")
 #' colfunc = colorRampPalette(YlOrBr, space = "Lab")
 #' mapviewOSM(con_df, mergeby = "country", col.regions = colfunc)
 #'
+#' ## With custon col.regions and breaks
 #' jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan",
-#'                               "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
-#' mapviewOSM(con_df, mergeby = "country", unit = "gb", burst=F, col.regions = jet.colors,
-#'            at = 0:3)
+#'                        "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+#' mapviewOSM(con_df, mergeby = "country", unit = "gb", burst=F,
+#'           col.regions = jet.colors, at = 0:3)
 #'
-#' mapviewOSM(con_df, mergeby = "country", col.regions=jet.colors,
+#' ## With custom popups
+#' mapviewOSM(con_df, mergeby = "country",
 #'            popup = mapview::popupTable(con_df, zcol = c("subregions", "kilobyte"),
-#'                                        feature.id = F))
+#'                                       feature.id = F))
 #'}
 #' @author Sebastian Gatscha
 utils::globalVariables(c("REGION","kilobyte"));

@@ -15,8 +15,10 @@ devtools::install_github("YsoSirius/getOSM")
 # Description
 The package offers an interactive interface to 
 the download service of Geofabrik GmbH. If osmconvert is 
-set as system variable, the function convertOSM can also be
-used.
+set as system variable, the function ```convertOSM``` can also be
+used. Some basic information about the data size per country
+and continent can be plotted as treemap with ```treemapOSM``` or
+as mapview plot with ```mapviewOSM``` 
 
 
     
