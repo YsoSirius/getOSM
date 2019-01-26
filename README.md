@@ -5,14 +5,14 @@
 [![codecov](https://codecov.io/gh/YsoSirius/getOSM/branch/master/graph/badge.svg)](https://codecov.io/gh/YsoSirius/getOSM)
 
 
-# Installation
+## Installation
  ```sh
 # install.packages("devtools")
 devtools::install_github("YsoSirius/getOSM")
 ```
 
 
-# Description
+## Description
 The package offers an interactive interface to 
 the download service of Geofabrik GmbH. If osmconvert is 
 set as system variable, the function ```convertOSM``` can also be
@@ -21,7 +21,7 @@ and continent can be plotted as treemap with ```treemapOSM``` or
 as mapview plot with ```mapviewOSM``` 
 
 
-# Usage 
+## Usage 
 ### Download OSM Data
  ```sh
 dest <- getOSM()
