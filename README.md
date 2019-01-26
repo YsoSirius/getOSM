@@ -48,6 +48,6 @@ treemapOSM(sumry)
 
 ### Plot the summary with mapviewOSM
  ```sh
-mapviewOSM(con_df, mergeby = "country", unit = "gb")
+mapviewOSM(sumry, mergeby = "country", unit = "gb")
 ```
 
