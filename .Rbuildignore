@@ -1,0 +1,11 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+.travis.yml
+/*.osm.bz2
+/*.osm.pbf
+/*.osm.osc
+/*.shp.zip
+/*.shp
+/*.o5m
+/*.o5c
+/*.pbf
