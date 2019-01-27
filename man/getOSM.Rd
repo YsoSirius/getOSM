@@ -16,12 +16,12 @@ getOSM(filterby = NULL, exclude = NULL, r1 = NULL, r2 = NULL,
 
 \item{r2}{Second link (Countries)}
 
-\item{r3}{If (\code{trimForce}==FALSE) the}
+\item{r3}{Third link (Download / Sub Regions)}
 
 \item{dest}{A destination directory}
 }
 \value{
-The download destination.
+The download destination
 }
 \description{
 Get OSM-Data from

@@ -12,8 +12,7 @@ or per country. Default is 'country'}
 \item{unit}{Which unit should be taken. Default is 'mb'}
 
 \item{...}{Arguments passed on to mapview.
-See \code{\link[mapview]{mapview}} or
-\href{https://r-spatial.github.io/mapview/}{Mapview}}
+See \href{https://r-spatial.github.io/mapview}{Mapview}}
 }
 \description{
 Plot the OSM summary dataset with mapview.

@@ -9,9 +9,9 @@ convertOSM(destfin, ext = "osm", cm = FALSE, cb = FALSE,
   osmconvert = "osmconvert")
 }
 \arguments{
-\item{destfin}{The input file path.}
+\item{destfin}{The input file path}
 
-\item{ext}{Possible extensions.}
+\item{ext}{Output format}
 
 \item{cm}{Include --complete-multipolygons}
 
@@ -19,7 +19,7 @@ convertOSM(destfin, ext = "osm", cm = FALSE, cb = FALSE,
 
 \item{cw}{Include --complete-ways}
 
-\item{bbox}{Cut out the result via bbox.}
+\item{bbox}{Cut out the result via bbox}
 
 \item{fname}{Output file name}
 
