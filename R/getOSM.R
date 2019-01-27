@@ -748,8 +748,7 @@ graphcycleOSM <- function(input, savename, inc_primary=FALSE,
 #' graphcarOSM(dest)
 #'}
 #' @author Sebastian Gatscha
-graphcarOSM <- function(input, savename, inc_primary=TRUE,
-                          inc_secondary=TRUE){
+graphcarOSM <- function(input, savename){
 
   if(missing(savename)) {savename <- "car_graph"}
   savename=paste0(strsplit(savename, ".osm", fixed = T)[[1]],".osm")
