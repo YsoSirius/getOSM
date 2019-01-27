@@ -1041,7 +1041,7 @@ postgresOSM <- function(input, dblist) {
 
 #' @title sfOSM
 #' @name sfOSM
-#' @description Filter the Simple Feature output from \code{\link{sfOSM}}.
+#' @description Read nodes or ways from PostgreSQL to R as sf.
 #'
 #' @export
 #'

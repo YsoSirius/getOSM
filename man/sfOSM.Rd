@@ -20,7 +20,7 @@ Must be one of 'nodes' or 'ways'. Default is 'ways'.}
 A Simple Feature object with either POINTS or LINESTRINGS
 }
 \description{
-Filter the Simple Feature output from \code{\link{sfOSM}}.
+Read nodes or ways from PostgreSQL to R as sf.
 }
 \examples{
 \donttest{
