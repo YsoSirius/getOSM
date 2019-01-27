@@ -13,10 +13,10 @@
 #' @param exclude Exclude by extensions
 #' @param r1 First link (Continent)
 #' @param r2 Second link (Countries)
-#' @param r3 If (\code{trimForce}==FALSE) the
+#' @param r3 Third link (Download / Sub Regions)
 #' @param dest A destination directory
 #'
-#' @return The download destination.
+#' @return The download destination
 #'
 #' @examples \donttest{
 #' dest <- getOSM()
@@ -113,7 +113,7 @@ getOSM <- function(filterby=NULL, exclude=NULL, r1=NULL,
 
   if (is.null(r3)) {
     print(levl3)
-    row_select2 = readline(prompt="Select the File you want to download.")
+    row_select2 = readline(prompt="Select the File (row number) you want to download.")
     print(paste("You selected", levl3[which(row_select2 == rownames(levl3)),1]))
   } else {
     row_select2 = r3
@@ -161,12 +161,12 @@ getOSM <- function(filterby=NULL, exclude=NULL, r1=NULL,
 #'
 #' @export
 #'
-#' @param destfin The input file path.
-#' @param ext Possible extensions.
+#' @param destfin The input file path
+#' @param ext Output format
 #' @param cm Include --complete-multipolygons
 #' @param cb Include --complete-boundaries
 #' @param cw Include --complete-ways
-#' @param bbox Cut out the result via bbox.
+#' @param bbox Cut out the result via bbox
 #' @param poly Cut out the result via a .poly-file
 #' @param fname Output file name
 #' @param osmconvert Name of the executable. Default is 'osmconvert'
@@ -510,8 +510,7 @@ treemapOSM <- function(sumry) {
 #' or per country. Default is 'country'
 #' @param unit Which unit should be taken. Default is 'mb'
 #' @param ... Arguments passed on to mapview.
-#' See \code{\link[mapview]{mapview}} or
-#' \href{https://r-spatial.github.io/mapview/}{Mapview}
+#' See \href{https://r-spatial.github.io/mapview}{Mapview}
 #'
 #' @examples \donttest{
 #' ## Get a summary dataset and plot it
@@ -645,3 +644,531 @@ mapviewOSM <- function(sumry, mergeby="country", unit="mb",...) {
 }
 
 
+#' @title pedesgraphOSM
+#' @name pedesgraphOSM
+#' @description Create a pedestrian routing graph.
+#'
+#' @export
+#'
+#' @param input The input file path
+#' @param savename Output name
+#' @param inc_primary If TRUE, primary roads are included. Default is FALSE
+#' @param inc_secondary If TRUE, secondary roads are included. Default is TRUE
+#'
+#' @return The osmosis call
+#'
+#' @examples \donttest{
+#' dest <- getOSM(filterby="osm", exclude = "md5", r1 = 2, r2 =13, dest="")
+#' pedesgraphOSM(dest)
+#'}
+#' @author Sebastian Gatscha
+pedesgraphOSM <- function(input, savename, inc_primary=FALSE,
+                          inc_secondary=TRUE){
+
+  if(missing(savename)) {savename <- "pedestrian_graph"}
+  savename=paste0(strsplit(savename, ".osm", fixed = T)[[1]],".osm")
+
+  arg = paste0('highway=pedestrian,path,footway,tertiary,living_street,track,',
+               'bridleway,steps,escalator,residential,unclassified,service')
+
+  if(inc_primary){arg <- paste0(arg, ",primary")}
+  if(inc_secondary){arg <- paste0(arg, ",secondary")}
+
+  cmd <- osmosisR(input,
+                  savename = savename,
+                  filter_relations = T,
+                  relation_accept = F,
+                  filter_ways = arg,
+                  ways_accept = T,
+                  usednode = T
+  )
+
+  invisible(cmd)
+}
+
+
+#' @title cyclegraphOSM
+#' @name cyclegraphOSM
+#' @description Create a cyclist routing graph.
+#'
+#' @export
+#'
+#' @param input The input file path
+#' @param savename Output name
+#' @param inc_primary If TRUE, primary roads are included. Default is FALSE
+#' @param inc_secondary If TRUE, secondary roads are included. Default is TRUE
+#'
+#' @return The osmosis call
+#'
+#' @examples \donttest{
+#' dest <- getOSM(filterby="osm", exclude = "md5", r1 = 2, r2 =13, dest="")
+#' cyclegraphOSM(dest)
+#'}
+#' @author Sebastian Gatscha
+cyclegraphOSM <- function(input, savename, inc_primary=FALSE,
+                          inc_secondary=TRUE){
+
+  if(missing(savename)) {savename <- "cyclist_graph"}
+  savename=paste0(strsplit(savename, ".osm", fixed = T)[[1]],".osm")
+
+  arg = paste0('highway=cycleway,path,tertiary,living_street,track,',
+               'bridleway,residential,unclassified,service')
+
+  if(inc_primary){arg <- paste0(arg, ",primary")}
+  if(inc_secondary){arg <- paste0(arg, ",secondary")}
+
+  arg <- paste0(arg,' --tf reject-ways highway=motorway,motorway_link ')
+
+  cmd <- osmosisR(input,
+                  savename = savename,
+                  filter_relations = T,
+                  relation_accept = F,
+                  filter_ways = arg,
+                  ways_accept = T,
+                  usednode = F)
+
+  invisible(cmd)
+}
+
+
+#' @title postgresOSM
+#' @name postgresOSM
+#' @description Import OSM/PBF file to PostgreSQL.
+#'
+#' @export
+#'
+#' @importFrom RPostgreSQL dbDisconnect dbConnect PostgreSQL
+#' @importFrom DBI dbExecute
+#'
+#' @param input The input file path (Must be in .osm or .pbf format)
+#' @param dblist A list with database credentials.
+#'
+#' @return The osmosis call
+#'
+#' @examples \donttest{
+#' dest <- getOSM(filterby="osm", exclude = "md5", r1 = 2, r2 =13, dest="")
+#' dblist <- list(dbname="test", dbuser="postgres", dbhost="localhost",
+#'                dbport="5432", dbpwd="postgres")
+#' cmd <- postgresOSM(dest, dblist)
+#'}
+#' @author Sebastian Gatscha
+postgresOSM <- function(input, dblist) {
+  createdb=TRUE
+  ## Connect Pool #################
+  if (missing(dblist) | is.logical(dblist)) {
+    stop(paste0("dblist must be a list with database information, like: \n",
+                'list(dbname="db_name", dbuser="user", dbhost="localhost, ',
+                'dbport="5433", dbpwd="postgres")'))
+  }
+  con <- RPostgreSQL::dbConnect(
+    drv = RPostgreSQL::PostgreSQL(),
+    dbname = dblist$dbname,
+    host = dblist$dbhost,
+    port = dblist$dbport,
+    user = dblist$dbuser,
+    password = dblist$dbpwd
+  )
+
+
+
+  ## Config DB with init scripts ###############
+  if (createdb) {
+    ## Extensions ##############
+    cmd = "CREATE EXTENSION IF NOT EXISTS postgis ;"
+    dbExecute(con, cmd)
+
+    cmd = "CREATE EXTENSION IF NOT EXISTS hstore;"
+    dbExecute(con, cmd)
+
+    ## pgshnapshot_osmosis ################
+    cmd = {"-- Database creation script for the snapshot PostgreSQL schema.
+
+      -- Drop all tables if they exist.
+      DROP TABLE IF EXISTS actions;
+      DROP TABLE IF EXISTS users;
+      DROP TABLE IF EXISTS nodes;
+      DROP TABLE IF EXISTS ways;
+      DROP TABLE IF EXISTS way_nodes;
+      DROP TABLE IF EXISTS relations;
+      DROP TABLE IF EXISTS relation_members;
+      DROP TABLE IF EXISTS schema_info;
+
+      -- Drop all stored procedures if they exist.
+      DROP FUNCTION IF EXISTS osmosisUpdate();
+
+
+      -- Create a table which will contain a single row defining the current schema version.
+      CREATE TABLE schema_info (
+      version integer NOT NULL
+      );
+
+
+      -- Create a table for users.
+      CREATE TABLE users (
+      id int NOT NULL,
+      name text NOT NULL
+      );
+
+
+      -- Create a table for nodes.
+      CREATE TABLE nodes (
+      id bigint NOT NULL,
+      version int NOT NULL,
+      user_id int NOT NULL,
+      tstamp timestamp without time zone NOT NULL,
+      changeset_id bigint NOT NULL,
+      tags hstore
+      );
+      -- Add a postgis point column holding the location of the node.
+      SELECT AddGeometryColumn('nodes', 'geom', 4326, 'POINT', 2);
+
+
+      -- Create a table for ways.
+      CREATE TABLE ways (
+      id bigint NOT NULL,
+      version int NOT NULL,
+      user_id int NOT NULL,
+      tstamp timestamp without time zone NOT NULL,
+      changeset_id bigint NOT NULL,
+      tags hstore,
+      nodes bigint[]
+      );
+
+
+      -- Create a table for representing way to node relationships.
+      CREATE TABLE way_nodes (
+      way_id bigint NOT NULL,
+      node_id bigint NOT NULL,
+      sequence_id int NOT NULL
+      );
+
+
+      -- Create a table for relations.
+      CREATE TABLE relations (
+      id bigint NOT NULL,
+      version int NOT NULL,
+      user_id int NOT NULL,
+      tstamp timestamp without time zone NOT NULL,
+      changeset_id bigint NOT NULL,
+      tags hstore
+      );
+
+      -- Create a table for representing relation member relationships.
+      CREATE TABLE relation_members (
+      relation_id bigint NOT NULL,
+      member_id bigint NOT NULL,
+      member_type character(1) NOT NULL,
+      member_role text NOT NULL,
+      sequence_id int NOT NULL
+      );
+
+
+      -- Configure the schema version.
+      INSERT INTO schema_info (version) VALUES (6);
+
+
+      -- Add primary keys to tables.
+      ALTER TABLE ONLY schema_info ADD CONSTRAINT pk_schema_info PRIMARY KEY (version);
+
+      ALTER TABLE ONLY users ADD CONSTRAINT pk_users PRIMARY KEY (id);
+
+      ALTER TABLE ONLY nodes ADD CONSTRAINT pk_nodes PRIMARY KEY (id);
+
+      ALTER TABLE ONLY ways ADD CONSTRAINT pk_ways PRIMARY KEY (id);
+
+      ALTER TABLE ONLY way_nodes ADD CONSTRAINT pk_way_nodes PRIMARY KEY (way_id, sequence_id);
+
+      ALTER TABLE ONLY relations ADD CONSTRAINT pk_relations PRIMARY KEY (id);
+
+      ALTER TABLE ONLY relation_members ADD CONSTRAINT pk_relation_members PRIMARY KEY (relation_id, sequence_id);
+
+
+      -- Add indexes to tables.
+      CREATE INDEX idx_nodes_geom ON nodes USING gist (geom);
+
+      CREATE INDEX idx_way_nodes_node_id ON way_nodes USING btree (node_id);
+
+      CREATE INDEX idx_relation_members_member_id_and_type ON relation_members USING btree (member_id, member_type);
+
+
+      -- Set to cluster nodes by geographical location.
+      ALTER TABLE ONLY nodes CLUSTER ON idx_nodes_geom;
+
+      -- Set to cluster the tables showing relationship by parent ID and sequence
+      ALTER TABLE ONLY way_nodes CLUSTER ON pk_way_nodes;
+      ALTER TABLE ONLY relation_members CLUSTER ON pk_relation_members;
+
+      -- There are no sensible CLUSTER orders for users or relations.
+      -- Depending on geometry columns different clustings of ways may be desired.
+
+      -- Create the function that provides 'unnest' functionality while remaining compatible with 8.3.
+      CREATE OR REPLACE FUNCTION unnest_bbox_way_nodes() RETURNS void AS $$
+      DECLARE
+      previousId ways.id%TYPE;
+      currentId ways.id%TYPE;
+      result bigint[];
+      wayNodeRow way_nodes%ROWTYPE;
+      wayNodes ways.nodes%TYPE;
+      BEGIN
+      FOR wayNodes IN SELECT bw.nodes FROM bbox_ways bw LOOP
+      FOR i IN 1 .. array_upper(wayNodes, 1) LOOP
+      INSERT INTO bbox_way_nodes (id) VALUES (wayNodes[i]);
+      END LOOP;
+      END LOOP;
+      END;
+      $$ LANGUAGE plpgsql;
+
+
+      -- Create customisable hook function that is called within the replication update transaction.
+      CREATE FUNCTION osmosisUpdate() RETURNS void AS $$
+      DECLARE
+      BEGIN
+      END;
+      $$ LANGUAGE plpgsql;
+
+      -- Manually set statistics for the way_nodes and relation_members table
+      -- Postgres gets horrible counts of distinct values by sampling random pages
+      -- and can be off by an 1-2 orders of magnitude
+
+      -- Size of the ways table / size of the way_nodes table
+      ALTER TABLE way_nodes ALTER COLUMN way_id SET (n_distinct = -0.08);
+
+      -- Size of the nodes table / size of the way_nodes table * 0.998
+      -- 0.998 is a factor for nodes not in ways
+      ALTER TABLE way_nodes ALTER COLUMN node_id SET (n_distinct = -0.83);
+
+      -- API allows a maximum of 2000 nodes/way. Unlikely to impact query plans.
+      ALTER TABLE way_nodes ALTER COLUMN sequence_id SET (n_distinct = 2000);
+
+      -- Size of the relations table / size of the relation_members table
+      ALTER TABLE relation_members ALTER COLUMN relation_id SET (n_distinct = -0.09);
+
+      -- Based on June 2013 data
+      ALTER TABLE relation_members ALTER COLUMN member_id SET (n_distinct = -0.62);
+
+      -- Based on June 2013 data. Unlikely to impact query plans.
+      ALTER TABLE relation_members ALTER COLUMN member_role SET (n_distinct = 6500);
+
+      -- Based on June 2013 data. Unlikely to impact query plans.
+      ALTER TABLE relation_members ALTER COLUMN sequence_id SET (n_distinct = 10000);
+
+      "
+    }
+    dbExecute(con, cmd)
+
+    ## pgshnapshot_lines_osmosis ################
+    cmd = {"
+      -- Add a postgis GEOMETRY column to the way table for the purpose of storing the full linestring of the way.
+      SELECT AddGeometryColumn('ways', 'linestring', 4326, 'GEOMETRY', 2);
+
+      -- Add an index to the bbox column.
+      CREATE INDEX idx_ways_linestring ON ways USING gist (linestring);
+
+      -- Cluster table by geographical location.
+      CLUSTER ways USING idx_ways_linestring;
+      "}
+    dbExecute(con, cmd)
+
+    ## Create Indices ##############
+    cmd = {"
+      CREATE INDEX idx_nodes_tags ON nodes USING GIN(tags);
+      CREATE INDEX idx_ways_tags ON ways USING GIN(tags);
+      CREATE INDEX idx_relations_tags ON relations USING GIN(tags);"}
+    dbExecute(con, cmd)
+
+    }
+  dbDisconnect(con)
+
+  if (!endsWith(input, ".osm") && ! endsWith(input, ".pbf")) {
+    stop("File must be an osm or pbf file.")
+  }
+  readarg = ifelse(endsWith(input, ".osm"), "--read-xml ", "--read-pbf file=")
+
+
+  ## Import with osmosis ##################
+  osmcmd <- paste0('osmosis ',readarg, input, ' --write-pgsql host="', dblist$dbhost,
+                   # '" port="',dblist$dbport,
+                   '" database="', dblist$dbname, '" user="', dblist$dbuser,
+                   '" password="', dblist$dbpwd, '"');
+  cat(paste0("Osmosis Call:\n", osmcmd))
+  cat("\n\n")
+
+  system(osmcmd)
+  invisible(osmcmd)
+}
+
+
+#' @title sfOSM
+#' @name sfOSM
+#' @description Filter the Simple Feature output from \code{\link{sfOSM}}.
+#'
+#' @export
+#'
+#' @importFrom DBI dbConnect dbGetQuery dbDisconnect
+#' @importFrom RPostgreSQL PostgreSQL
+#' @importFrom sf st_as_sf st_set_crs st_transform
+#'
+#' @param dblist A list with database credentials.
+#' @param elem Which elements should be converted to Simple Features?
+#' Must be one of 'nodes' or 'ways'. Default is 'ways'.
+#' @param crsin Input CRS. Default is 4326
+#' @param crsout Output CRS, if transformation is needed. Default is NULL
+#'
+#' @return A Simple Feature object with either POINTS or LINESTRINGS
+#'
+#' @examples \donttest{
+#' dblist <- list(dbname="test", dbuser="postgres", dbhost="localhost",
+#'               dbport="5432", dbpwd="hallo")
+#' ways <- sfOSM(dblist)
+#' plot(st_geometry(ways))
+#'
+#' nodes <- sfOSM(dblist, elem = "nodes")
+#' plot(st_geometry(nodes))
+#'
+#' ways3035 <- sfOSM(dblist, crsout=3035)
+#' plot(st_geometry(ways3035))
+#' }
+#' @author Sebastian Gatscha
+sfOSM <- function(dblist, elem="ways", crsin=4326, crsout=NULL) {
+  ## Check Inputs ##############
+  elems = c("nodes","ways")
+  if(!elem %in% elems) {
+    stop(paste0("elem must be one of: ",paste(elems, collapse = ", ")))
+  }
+  if(missing(dblist) | is.logical(dblist)) {
+    stop(paste0("dblist must be a list with database information, like: \n",
+                'list(dbname="db_name", dbuser="user", dbhost="localhost, ',
+                'dbport="5433", dbpwd="postgres")'))
+  }
+  if (length(elem) > 1) {
+    warning("More than 1 argument given to elem. Only the firt one is used")
+  }
+
+  ## Connect to DB #################
+  con <- dbConnect(
+    drv = RPostgreSQL::PostgreSQL(),
+    dbname = dblist$dbname,
+    host = dblist$dbhost,
+    port = dblist$dbport,
+    user = dblist$dbuser,
+    password = dblist$dbpwd
+  )
+
+
+  ## Nodes #############
+  if (elem[1]=="nodes") {
+    points <- dbGetQuery(con, "SELECT * , ST_AsText(geom) AS geometry from nodes")
+    points$geom <- NULL
+
+    res <- st_as_sf(points, wkt="geometry") %>%
+      st_set_crs(crsin)
+  }
+
+  ## Ways #############
+  if (elem[1]=="ways") {
+    lines <- dbGetQuery(con, "SELECT * , ST_AsText(linestring) AS geometry from ways")
+    lines$geom <- NULL
+    lines$linestring <- NULL
+    res <- st_as_sf(lines, wkt="geometry") %>%
+      st_set_crs(crsin)
+  }
+
+  ## Disconnect from DB ###########
+  dbDisconnect(con)
+
+  ## Change output CRS ###########
+  if(!is.null(crsout)) {res <- st_transform(res, crsout)}
+
+  invisible(res)
+}
+
+
+
+
+#' @title filterSF
+#' @name filterSF
+#' @description Filter the Simple Feature output from \code{\link{sfOSM}}.
+#'
+#' @export
+#'
+#' @importFrom sf st_geometry st_geometry_type
+#'
+#' @param sf Input Simple Feature
+#' @param tf Filter by tag key/values
+#' @param id Filtery by id
+#' @param version Filtery by version
+#' @param nodes Filtery by nodes (Only for ways)
+#' @param timestamp Filtery by timestamp. The column will be detected, if
+#' it is configured as POSIXct.
+#' @param plot Plot the result? Default is FALSE.
+#' @param trimtags Trim teh tag names? Default is TRUE
+#' @param pal A color palette
+#' @param ... Passed on to \code{\link{grep}}
+#'
+#' @return The filtered Simple Feature
+#'
+#' @examples \donttest{
+#' dblist <- list(dbname="test", dbuser="postgres", dbhost="localhost",
+#'                dbport="5432", dbpwd="hallo")
+#'
+#' ## Working with OSM Ways
+#' ways <- sfOSM(dblist, elem="ways")
+#' r <- filterSF(ways, id=4383033, plot=T);
+#' r <- filterSF(ways, nodes="5339632222,5343805366,5343805367,5343805368,5343805369,5339632232",
+#'               plot=T, fixed=T);
+#' r <- filterSF(ways, tf="primary", version = 11, plot=T);
+#' r <- filterSF(ways, tf=c("footway", "path"), version = c(11,12), plot=T);
+#' r <- filterSF(ways, id=184691002, plot=T);
+#' r <- filterSF(ways, tf="surface\"=>\"asphalt", plot=T);
+#' r <- filterSF(ways, tf=c("footway", "path"), plot=T, pal=c("blue","red"));
+#' r <- filterSF(ways, tf=c("secondary", "residential","footway", "path"),
+#'               plot=T, pal=rainbow(5));
+#'
+#' ## Working with OSM Nodes
+#' nodes <- sfOSM(dblist, elem="nodes")
+#' r <- filterSF(nodes, tf="highway", plot=T);
+#' r <- filterSF(nodes, tf="crossing", version=11, plot=T);
+#' r <- filterSF(nodes, version=9,  plot=T);
+#' r <- filterSF(nodes, id=26936524,  plot=T);
+#' }
+#' @author Sebastian Gatscha
+filterSF <- function(sf, tf=NULL, id=NULL, version=NULL, nodes=NULL,
+                     timestamp=NULL, plot=FALSE, trimtags=TRUE,
+                     pal, ...) {
+  if (!is.null(tf)) {
+    sf = sf[grep(pattern = paste(tf, collapse = "|"), sf$tags, ...),]
+  }
+  if (!is.null(nodes)) {
+    if (st_geometry_type(sf)[1]=="LINESTRING") {
+      sf = sf[grep(pattern = nodes, sf$nodes, ...),]
+    } else {
+      warning("Nodes can only be searched in OSM-ways.")
+    }
+  }
+  if (!is.null(id)) {sf <- sf[sf$id %in% id,]}
+  if (!is.null(version)) {sf <- sf[sf$version %in% version,]}
+  if (!is.null(timestamp)) {
+    colname = names(which(sapply(sf, FUN = function(i) {
+      inherits(i, "POSIXct")
+    })))
+    if (length(colname)==0) stop("No POSIXct column found")
+    sf <- sf[sf[[colname]] %in% timestamp,]
+  }
+  if (plot) {
+    if(nrow(sf)==0) {
+      warning("Nothing to plot.")
+    } else {
+      if (trimtags) {
+        for (i in tf) {
+          sf[grep(pattern = i, x = sf$tags, value = F, fixed = T),]$tags = i
+        }
+      }
+      # browser()
+      # plot(sf["tags"])
+      if(missing(pal)) {pal1 = NULL} else {pal1 = pal}
+      plot(sf["tags"], pal=pal1)
+
+    }
+  }
+  invisible(sf)
+}
