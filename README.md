@@ -16,7 +16,10 @@ devtools::install_github("YsoSirius/getOSM")
 The package offers an interactive interface to 
 the download service of Geofabrik GmbH. If osmconvert is 
 set as system variable, the function ```convertOSM``` can also be
-used. Some basic information about the data size per country
+used. The same goes for osmosis, which enables the function 
+```osmosisR```.
+
+Some basic information about the data size per country
 and continent can be plotted as treemap with ```treemapOSM``` or
 as mapview plot with ```mapviewOSM``` 
 
@@ -51,3 +54,25 @@ treemapOSM(sumry)
 mapviewOSM(sumry, mergeby = "country", unit = "gb")
 ```
 
+### Create an OSM-file filtered for pedestrian routing
+The functions ```graphcycleOSM``` and ```graphcarOSM``` are used for bicycle and car routing.
+ ```sh
+## Download Comores Data
+dest <- getOSM(filterby="osm", exclude = "md5", r1 = 2, r2 =13)
+## Filters only highway elements for pedestrian routing and converts to osm 
+graphpedesOSM(dest)
+```
+
+### Import to DB with osmosis
+ ```sh
+ ## The Database must already exist beforahand. 
+dblist <- list(dbname="test", dbuser="postgres", dbhost="localhost",
+               dbport="5432", dbpwd="postgres")
+cmd <- postgresOSM(dest, dblist)
+```
+
+### Inspect Database 
+ ```sh
+ways <- sfOSM(dblist)
+r <- filterSF(ways, tf=c("footway", "path"), plot=T);
+ ```
