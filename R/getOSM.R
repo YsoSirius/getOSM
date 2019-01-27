@@ -487,6 +487,8 @@ summaryOSM <- function() {
 #' @author Sebastian Gatscha
 treemapOSM <- function(sumry) {
   sumry$seq=NULL
+  sumry$continent <- gsub(pattern = "-", replacement = " ", sumry$continent)
+  sumry$subregions <- gsub(pattern = "-", replacement = " ", sumry$subregions)
   sumry$seq <- paste(sumry$continent, sumry$subregions, sep = "-")
   cont_plot <- sumry[,c("seq", "kilobyte")]
   sunburstR::sunburst(cont_plot, count=T)
@@ -644,8 +646,8 @@ mapviewOSM <- function(sumry, mergeby="country", unit="mb",...) {
 }
 
 
-#' @title pedesgraphOSM
-#' @name pedesgraphOSM
+#' @title graphpedesOSM
+#' @name graphpedesOSM
 #' @description Create a pedestrian routing graph.
 #'
 #' @export
@@ -659,10 +661,10 @@ mapviewOSM <- function(sumry, mergeby="country", unit="mb",...) {
 #'
 #' @examples \donttest{
 #' dest <- getOSM(filterby="osm", exclude = "md5", r1 = 2, r2 =13, dest="")
-#' pedesgraphOSM(dest)
+#' graphpedesOSM(dest)
 #'}
 #' @author Sebastian Gatscha
-pedesgraphOSM <- function(input, savename, inc_primary=FALSE,
+graphpedesOSM <- function(input, savename, inc_primary=FALSE,
                           inc_secondary=TRUE){
 
   if(missing(savename)) {savename <- "pedestrian_graph"}
@@ -687,8 +689,8 @@ pedesgraphOSM <- function(input, savename, inc_primary=FALSE,
 }
 
 
-#' @title cyclegraphOSM
-#' @name cyclegraphOSM
+#' @title graphcycleOSM
+#' @name graphcycleOSM
 #' @description Create a cyclist routing graph.
 #'
 #' @export
@@ -702,10 +704,10 @@ pedesgraphOSM <- function(input, savename, inc_primary=FALSE,
 #'
 #' @examples \donttest{
 #' dest <- getOSM(filterby="osm", exclude = "md5", r1 = 2, r2 =13, dest="")
-#' cyclegraphOSM(dest)
+#' graphcycleOSM(dest)
 #'}
 #' @author Sebastian Gatscha
-cyclegraphOSM <- function(input, savename, inc_primary=FALSE,
+graphcycleOSM <- function(input, savename, inc_primary=FALSE,
                           inc_secondary=TRUE){
 
   if(missing(savename)) {savename <- "cyclist_graph"}
@@ -730,6 +732,45 @@ cyclegraphOSM <- function(input, savename, inc_primary=FALSE,
   invisible(cmd)
 }
 
+#' @title graphcarOSM
+#' @name graphcarOSM
+#' @description Create a car routing graph.
+#'
+#' @export
+#'
+#' @param input The input file path
+#' @param savename Output name
+#'
+#' @return The osmosis call
+#'
+#' @examples \donttest{
+#' dest <- getOSM(filterby="osm", exclude = "md5", r1 = 2, r2 =13, dest="")
+#' graphcarOSM(dest)
+#'}
+#' @author Sebastian Gatscha
+graphcarOSM <- function(input, savename, inc_primary=TRUE,
+                          inc_secondary=TRUE){
+
+  if(missing(savename)) {savename <- "car_graph"}
+  savename=paste0(strsplit(savename, ".osm", fixed = T)[[1]],".osm")
+
+  arg = paste0('highway=motorway,motorway_link,secondary,primary,tertiary,living_street,track,',
+               'primary_link,secondary_link,trunk,trunk_link,road,',
+               'residential,unclassified,service'
+               )
+
+  arg <- paste0(arg,' --tf reject-ways highway=cycleway,pedestrian,path,bridleway,footway ')
+
+  cmd <- osmosisR(input,
+                  savename = savename,
+                  filter_relations = T,
+                  relation_accept = F,
+                  filter_ways = arg,
+                  ways_accept = T,
+                  usednode = F)
+
+  invisible(cmd)
+}
 
 #' @title postgresOSM
 #' @name postgresOSM
@@ -996,6 +1037,7 @@ postgresOSM <- function(input, dblist) {
   system(osmcmd)
   invisible(osmcmd)
 }
+
 
 
 #' @title sfOSM
