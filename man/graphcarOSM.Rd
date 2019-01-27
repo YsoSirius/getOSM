@@ -4,7 +4,7 @@
 \alias{graphcarOSM}
 \title{graphcarOSM}
 \usage{
-graphcarOSM(input, savename, inc_primary = TRUE, inc_secondary = TRUE)
+graphcarOSM(input, savename)
 }
 \arguments{
 \item{input}{The input file path}
